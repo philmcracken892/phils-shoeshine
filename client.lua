@@ -1,3 +1,4 @@
+
 local RSGCore = exports['rsg-core']:GetCoreObject()
 
 
@@ -42,7 +43,25 @@ local placerHeading = 0.0
 local placerPitch = 0.0
 local placerRoll = 0.0
 
-
+-- CLEANPED HELPER
+local function CleanPed(ped)
+    -- Standard natives
+    ClearPedEnvDirt(ped)
+    ClearPedBloodDamage(ped)
+    
+    -- RedM specific natives
+    Citizen.InvokeNative(0x7F5D88333EE8A86F, ped, true)           -- Clear wetness
+    Citizen.InvokeNative(0x523C79AEEFCC4A2A, ped, 0.0)            -- Set env effect scale
+    Citizen.InvokeNative(0xE3144B932DFDFF65, ped, 0.0, -1, 1, 1)  -- Clear damage
+    Citizen.InvokeNative(0x8FE22675A5A45817, ped)                 -- Clear blood (hash)
+    Citizen.InvokeNative(0x1E8DA56503E3E5CE, ped)                 -- Clear dirt (hash)
+    Citizen.InvokeNative(0xCC8CA3E88256E58F, ped, false, true, true, true, false) -- Refresh ped
+    
+    -- Clear all damage zones
+    for zone = 0, 10 do
+        ClearPedDamageDecalByZone(ped, zone, "ALL")
+    end
+end
 
 local function HasShoeShinerJob()
     if not Config.RequireJob then
@@ -685,6 +704,11 @@ RegisterNetEvent('shoeshine:client:npcShinePaymentResult', function(success, cos
                 
                 
                 if finished then
+                    -- CLEAN YOU (CUSTOMER) HERE WITHOUT BREAKING SIT
+                    local playerPed = PlayerPedId()
+                    CleanPed(playerPed)
+                    TriggerServerEvent("RSGCore:Server:SetMetaData", "cleanliness", 100)
+
                     lib.notify({
                         title = 'Shoe Shine',
                         description = 'Your shoes are sparkling clean!',
@@ -1031,7 +1055,14 @@ local function ShineNPCShoes(npc)
     })
     
     if finished then
-        ClearPedTasks(playerPed)
+        ClearPedTasksImmediately(playerPed)
+        Wait(150)
+
+        -- optional: clean the NPC visually
+        if DoesEntityExist(npc) then
+            CleanPed(npc)
+        end
+
         isShining = false
         
         for i, qPed in pairs(queuedNPCs) do
@@ -1061,7 +1092,7 @@ local function ShineNPCShoes(npc)
             type = 'success'
         })
     else
-        ClearPedTasks(playerPed)
+        ClearPedTasksImmediately(playerPed)
         isShining = false
         
         lib.notify({
@@ -1094,6 +1125,12 @@ local function PlaceStand()
             })
             return
         end
+        
+        local playerPed = PlayerPedId()
+        
+        TaskStartScenarioInPlace(playerPed, "WORLD_HUMAN_CROUCH_INSPECT", 0, true)
+        Citizen.Wait(3000)
+        ClearPedTasks(playerPed)
         
         local modelHash = joaat(Config.StandModel)
         
@@ -1305,6 +1342,12 @@ local function PickupStand(standData, index, isWorld)
         table.remove(queuedNPCs, i)
     end
     
+    local playerPed = PlayerPedId()
+    
+    TaskStartScenarioInPlace(playerPed, "WORLD_HUMAN_CROUCH_INSPECT", 0, true)
+    Citizen.Wait(3000)
+    ClearPedTasks(playerPed)
+    
     DeleteEntity(standData.entity)
     table.remove(placedStands, index)
     
@@ -1321,8 +1364,27 @@ local function PickupStand(standData, index, isWorld)
     })
 end
 
+-- CLEANPED HELPER (already in your file; kept as-is)
+local function CleanPed(ped)
+    -- Standard natives
+    ClearPedEnvDirt(ped)
+    ClearPedBloodDamage(ped)
+    
+    -- RedM specific natives
+    Citizen.InvokeNative(0x7F5D88333EE8A86F, ped, true)           -- Clear wetness
+    Citizen.InvokeNative(0x523C79AEEFCC4A2A, ped, 0.0)            -- Set env effect scale
+    Citizen.InvokeNative(0xE3144B932DFDFF65, ped, 0.0, -1, 1, 1)  -- Clear damage
+    Citizen.InvokeNative(0x8FE22675A5A45817, ped)                 -- Clear blood (hash)
+    Citizen.InvokeNative(0x1E8DA56503E3E5CE, ped)                 -- Clear dirt (hash)
+    Citizen.InvokeNative(0xCC8CA3E88256E58F, ped, false, true, true, true, false) -- Refresh ped
+    
+    -- Clear all damage zones
+    for zone = 0, 10 do
+        ClearPedDamageDecalByZone(ped, zone, "ALL")
+    end
+end
 
-
+-- PLAYER AS SHINER (does NOT touch the sitting ped)
 RegisterNetEvent('shoeshine:client:performShine', function(standCoords)
     local playerPed = PlayerPedId()
     isShining = true
@@ -1387,7 +1449,14 @@ RegisterNetEvent('shoeshine:client:performShine', function(standCoords)
     })
     
     if finished then
-        ClearPedTasks(playerPed)
+        -- stop the crouch/shine scenario for the SHINER only
+        ClearPedTasksImmediately(playerPed)
+        Wait(150)
+
+        -- optional: clean the shiner themselves
+        CleanPed(playerPed)
+        TriggerServerEvent("RSGCore:Server:SetMetaData", "cleanliness", 100)
+
         isShining = false
         
         lib.notify({
@@ -1396,7 +1465,7 @@ RegisterNetEvent('shoeshine:client:performShine', function(standCoords)
             type = 'success'
         })
     else
-        ClearPedTasks(playerPed)
+        ClearPedTasksImmediately(playerPed)
         isShining = false
         
         lib.notify({
@@ -1407,8 +1476,10 @@ RegisterNetEvent('shoeshine:client:performShine', function(standCoords)
     end
 end)
 
+-- PLAYER AS CUSTOMER (RECEIVING a shine from another player)
 RegisterNetEvent('shoeshine:client:receiveShine', function()
     local shineDuration = Config.ShineDuration or 10000
+    local playerPed = PlayerPedId()
     
     lib.notify({
         title = 'Shoe Shine',
@@ -1416,7 +1487,12 @@ RegisterNetEvent('shoeshine:client:receiveShine', function()
         type = 'inform'
     })
     
+    -- Let the sit/shine animation run; do NOT clear tasks here
     Wait(shineDuration)
+    
+    -- Just clean the ped visually and set cleanliness
+    CleanPed(playerPed)
+    TriggerServerEvent("RSGCore:Server:SetMetaData", "cleanliness", 100)
     
     lib.notify({
         title = 'Shoe Shine',
@@ -1424,7 +1500,6 @@ RegisterNetEvent('shoeshine:client:receiveShine', function()
         type = 'success'
     })
 end)
-
 
 
 local function OpenStandMenu()
