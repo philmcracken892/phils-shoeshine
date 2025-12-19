@@ -1853,14 +1853,18 @@ end)
 -- RESOURCE EVENTS
 -- ============================================
 
+AddEventHandler('RSGCore:Client:OnPlayerLoaded', function()
+    Wait(1000)
+    TriggerServerEvent('shoeshine:server:requestSync')
+end)
+
+-- Also handle the resource restart
 AddEventHandler('onResourceStart', function(resourceName)
     if GetCurrentResourceName() == resourceName then
         Wait(1000)
         TriggerServerEvent('shoeshine:server:requestSync')
-        
     end
 end)
-
 AddEventHandler('onResourceStop', function(resourceName)
     if GetCurrentResourceName() == resourceName then
         CleanupAutoShiner()
