@@ -35,6 +35,7 @@ RegisterNetEvent('shoeshine:server:syncStand', function(data)
         owner = src,
         coords = vectorToTable(data.coords),
         heading = data.heading,
+        netId = data.netId,  -- ✅ ADD THIS LINE
         occupied = false,
         sittingPlayer = nil
     }
@@ -42,7 +43,7 @@ RegisterNetEvent('shoeshine:server:syncStand', function(data)
     table.insert(syncedStands, standData)
     
     -- Debug print
-    print('^2[Shoeshine]^7 Stand created by player ' .. src .. ' at ' .. json.encode(standData.coords))
+    print('^2[Shoeshine]^7 Stand created by player ' .. src .. ' at ' .. json.encode(standData.coords) .. ' netId: ' .. tostring(data.netId))
     print('^2[Shoeshine]^7 Total stands: ' .. #syncedStands)
     
     -- Sync to ALL players
@@ -68,15 +69,35 @@ RegisterNetEvent('shoeshine:server:playerSat', function(coords)
     local src = source
     local coordsTable = vectorToTable(coords)
     
-    -- Update stand status in syncedStands
+    if not coordsTable then
+        print('^1[Shoeshine]^7 playerSat received invalid coords')
+        return
+    end
+    
+    -- Update stand status in syncedStands using DISTANCE comparison (not exact)
+    local found = false
     for i, stand in ipairs(syncedStands) do
-        if stand.coords.x == coordsTable.x and stand.coords.y == coordsTable.y and stand.coords.z == coordsTable.z then
-            syncedStands[i].occupied = true
-            syncedStands[i].sittingPlayer = src
-            break
+        if stand.coords then
+            local dist = math.sqrt(
+                (stand.coords.x - coordsTable.x)^2 + 
+                (stand.coords.y - coordsTable.y)^2 + 
+                (stand.coords.z - coordsTable.z)^2
+            )
+            if dist < 2.0 then
+                syncedStands[i].occupied = true
+                syncedStands[i].sittingPlayer = src
+                found = true
+                print('^2[Shoeshine]^7 Player ' .. src .. ' sat on stand. Occupied = true')
+                break
+            end
         end
     end
     
+    if not found then
+        print('^1[Shoeshine]^7 Could not find stand for player ' .. src .. ' to sit on!')
+    end
+    
+    -- Send update to ALL clients
     TriggerClientEvent('shoeshine:client:updateStandStatus', -1, coordsTable, true, src)
 end)
 
