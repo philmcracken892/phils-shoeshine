@@ -794,7 +794,7 @@ local function CallNearbyCustomer()
     local myPed = PlayerPedId()
     
     repeat
-        if ped ~= myPed and not IsPedAPlayer(ped) and not IsPedDeadOrDying(ped) then
+        if ped ~= myPed and not IsPedAPlayer(ped) and not IsPedDeadOrDying(ped) and IsPedHuman(ped) then
             local pedCoords = GetEntityCoords(ped)
             local distance = #(standCoords - pedCoords)
             
