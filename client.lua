@@ -43,13 +43,13 @@ local placerHeading = 0.0
 local placerPitch = 0.0
 local placerRoll = 0.0
 
--- CLEANPED HELPER
+
 local function CleanPed(ped)
-    -- Standard natives
+   
     ClearPedEnvDirt(ped)
     ClearPedBloodDamage(ped)
     
-    -- RedM specific natives
+    
     Citizen.InvokeNative(0x7F5D88333EE8A86F, ped, true)           -- Clear wetness
     Citizen.InvokeNative(0x523C79AEEFCC4A2A, ped, 0.0)            -- Set env effect scale
     Citizen.InvokeNative(0xE3144B932DFDFF65, ped, 0.0, -1, 1, 1)  -- Clear damage
@@ -57,10 +57,18 @@ local function CleanPed(ped)
     Citizen.InvokeNative(0x1E8DA56503E3E5CE, ped)                 -- Clear dirt (hash)
     Citizen.InvokeNative(0xCC8CA3E88256E58F, ped, false, true, true, true, false) -- Refresh ped
     
-    -- Clear all damage zones
+  
     for zone = 0, 10 do
         ClearPedDamageDecalByZone(ped, zone, "ALL")
     end
+end
+
+
+local function tableToVector(tbl)
+    if tbl and tbl.x and tbl.y and tbl.z then
+        return vector3(tbl.x, tbl.y, tbl.z)
+    end
+    return nil
 end
 
 local function HasShoeShinerJob()
@@ -169,7 +177,7 @@ local function FindNearbyNPCForShining(coords, radius)
     local myPed = PlayerPedId()
     
     repeat
-        -- Added IsPedHuman(ped) check to exclude animals
+        
         if ped ~= myPed and not IsPedAPlayer(ped) and not IsPedDeadOrDying(ped) and IsPedHuman(ped) then
             local pedCoords = GetEntityCoords(ped)
             local distance = #(coords - pedCoords)
@@ -497,18 +505,16 @@ local function CreatePrompt(text, key, holdMode)
 end
 
 local function SetupPrompts()
-    sitPrompt = CreatePrompt('Sit on Stand', 0xCEFD9220, true)
+    sitPrompt = CreatePrompt('Sit on Stand', 0xCEFD9220, true)  -- E key
     local shineText = 'Shine Shoes ($' .. tostring(Config.ShinePrice or 5) .. ')'
-    shinePrompt = CreatePrompt(shineText, 0xCEFD9220, true)
-    standUpPrompt = CreatePrompt('Stand Up', 0x156F7119, false)
+    shinePrompt = CreatePrompt(shineText, 0x8CC9CD42, true)  -- x key (CHANGED!)
+    standUpPrompt = CreatePrompt('Stand Up', 0x156F7119, false)  -- Backspace
     local shinerCost = Config.AutoNPCShiner and Config.AutoNPCShiner.cost or 3
-    callShinerPrompt = CreatePrompt('Call Shoe Shiner ($' .. shinerCost .. ')', 0x760A9C6F, true)
-    callCustomerPrompt = CreatePrompt('Call Customer', 0x7F7E5A78, true)
-    pickupPrompt = CreatePrompt('Pickup Stand', 0xF3830D8E, true)
+    callShinerPrompt = CreatePrompt('Call Shoe Shiner ($' .. shinerCost .. ')', 0x760A9C6F, true)  -- G key
+    callCustomerPrompt = CreatePrompt('Call Customer', 0x7F7E5A78, true)  -- H key
+    pickupPrompt = CreatePrompt('Pickup Stand', 0xF3830D8E, true)  -- J key
     
     SetupPlacerPrompts()
-    
-    
 end
 
 local function ShowPromptGroup(text)
@@ -687,7 +693,7 @@ RegisterNetEvent('shoeshine:client:npcShinePaymentResult', function(success, cos
                 
                
                 
-                -- Progress bar
+                
                 local finished = lib.progressBar({
                     duration = shineDuration,
                     label = 'Getting shoes shined...',
@@ -703,7 +709,7 @@ RegisterNetEvent('shoeshine:client:npcShinePaymentResult', function(success, cos
                 
                 
                 if finished then
-                    -- CLEAN YOU (CUSTOMER) HERE WITHOUT BREAKING SIT
+                   
                     local playerPed = PlayerPedId()
                     CleanPed(playerPed)
                     TriggerServerEvent("RSGCore:Server:SetMetaData", "cleanliness", 100)
@@ -1363,13 +1369,13 @@ local function PickupStand(standData, index, isWorld)
     })
 end
 
--- CLEANPED HELPER (already in your file; kept as-is)
+
 local function CleanPed(ped)
-    -- Standard natives
+   
     ClearPedEnvDirt(ped)
     ClearPedBloodDamage(ped)
     
-    -- RedM specific natives
+    
     Citizen.InvokeNative(0x7F5D88333EE8A86F, ped, true)           -- Clear wetness
     Citizen.InvokeNative(0x523C79AEEFCC4A2A, ped, 0.0)            -- Set env effect scale
     Citizen.InvokeNative(0xE3144B932DFDFF65, ped, 0.0, -1, 1, 1)  -- Clear damage
@@ -1377,21 +1383,32 @@ local function CleanPed(ped)
     Citizen.InvokeNative(0x1E8DA56503E3E5CE, ped)                 -- Clear dirt (hash)
     Citizen.InvokeNative(0xCC8CA3E88256E58F, ped, false, true, true, true, false) -- Refresh ped
     
-    -- Clear all damage zones
+   
     for zone = 0, 10 do
         ClearPedDamageDecalByZone(ped, zone, "ALL")
     end
 end
 
--- PLAYER AS SHINER (does NOT touch the sitting ped)
 RegisterNetEvent('shoeshine:client:performShine', function(standCoords)
     local playerPed = PlayerPedId()
     isShining = true
     
+   
+    local targetCoords = standCoords
+    if type(standCoords) == 'table' and standCoords.x then
+        targetCoords = vector3(standCoords.x, standCoords.y, standCoords.z)
+    end
+    
     local standData = nil
     
+   
     for _, stand in pairs(placedStands) do
-        if #(stand.coords - standCoords) < 1.0 then
+        local sCoords = stand.coords
+        if type(sCoords) == 'table' then
+            sCoords = vector3(sCoords.x, sCoords.y, sCoords.z)
+        end
+        
+        if #(sCoords - targetCoords) < 1.0 then
             standData = stand
             break
         end
@@ -1399,7 +1416,12 @@ RegisterNetEvent('shoeshine:client:performShine', function(standCoords)
     
     if not standData then
         for _, stand in pairs(worldStands) do
-            if #(stand.coords - standCoords) < 1.0 then
+            local sCoords = stand.coords
+            if type(sCoords) == 'table' then
+                sCoords = vector3(sCoords.x, sCoords.y, sCoords.z)
+            end
+            
+            if #(sCoords - targetCoords) < 1.0 then
                 standData = stand
                 break
             end
@@ -1448,11 +1470,11 @@ RegisterNetEvent('shoeshine:client:performShine', function(standCoords)
     })
     
     if finished then
-        -- stop the crouch/shine scenario for the SHINER only
+        
         ClearPedTasksImmediately(playerPed)
         Wait(150)
 
-        -- optional: clean the shiner themselves
+        
         CleanPed(playerPed)
         TriggerServerEvent("RSGCore:Server:SetMetaData", "cleanliness", 100)
 
@@ -1475,7 +1497,7 @@ RegisterNetEvent('shoeshine:client:performShine', function(standCoords)
     end
 end)
 
--- PLAYER AS CUSTOMER (RECEIVING a shine from another player)
+
 RegisterNetEvent('shoeshine:client:receiveShine', function()
     local shineDuration = Config.ShineDuration or 10000
     local playerPed = PlayerPedId()
@@ -1486,10 +1508,10 @@ RegisterNetEvent('shoeshine:client:receiveShine', function()
         type = 'inform'
     })
     
-    -- Let the sit/shine animation run; do NOT clear tasks here
+   
     Wait(shineDuration)
     
-    -- Just clean the ped visually and set cleanliness
+   
     CleanPed(playerPed)
     TriggerServerEvent("RSGCore:Server:SetMetaData", "cleanliness", 100)
     
@@ -1572,6 +1594,8 @@ CreateThread(function()
     Wait(1000)
     SetupPrompts()
     
+    
+    
     while true do
         local sleep = 1000
         local currentTime = GetGameTimer()
@@ -1579,6 +1603,7 @@ CreateThread(function()
         local playerPed = PlayerPedId()
         local playerCoords = GetEntityCoords(playerPed)
         local interactionDistance = Config.InteractionDistance or 3.0
+        local myServerId = GetPlayerServerId(PlayerId())
         
         local nearStand = false
         local nearNPC = false
@@ -1589,11 +1614,14 @@ CreateThread(function()
         local targetIndex = nil
         local nearSittingPlayer = false
         local sittingPlayerPed = nil
+        local sittingPlayerServerId = nil
         
+       
         if isPlacingStand then
             Wait(100)
             goto continue
         end
+        
         
         for index, standData in pairs(placedStands) do
             if standData and standData.entity and DoesEntityExist(standData.entity) then
@@ -1606,22 +1634,37 @@ CreateThread(function()
                     targetIndex = index
                     isWorldStand = false
                     
-                    if standData.owner == GetPlayerServerId(PlayerId()) then
+                   
+                    if standData.owner == myServerId then
                         nearOwnStand = true
                         currentStand = standData
                     end
                     
+                   
                     if standData.occupied and standData.sittingPlayer then
-                        for _, playerId in ipairs(GetActivePlayers()) do
-                            local otherPed = GetPlayerPed(playerId)
-                            if otherPed ~= playerPed then
+                       
+                        if standData.sittingPlayer ~= myServerId then
+                           
+                            local players = GetActivePlayers()
+                            
+                            for _, playerId in ipairs(players) do
                                 local serverId = GetPlayerServerId(playerId)
+                                
                                 if serverId == standData.sittingPlayer then
-                                    local otherCoords = GetEntityCoords(otherPed)
-                                    local distToStand = #(otherCoords - standCoords)
-                                    if distToStand < 2.5 then
-                                        nearSittingPlayer = true
-                                        sittingPlayerPed = otherPed
+                                    local otherPed = GetPlayerPed(playerId)
+                                    
+                                    if otherPed and DoesEntityExist(otherPed) then
+                                        if otherPed ~= playerPed then
+                                            local otherCoords = GetEntityCoords(otherPed)
+                                            local distToStand = #(otherCoords - standCoords)
+                                            
+                                            
+                                            if distToStand < 5.0 then
+                                                nearSittingPlayer = true
+                                                sittingPlayerPed = otherPed
+                                                sittingPlayerServerId = serverId
+                                            end
+                                        end
                                     end
                                     break
                                 end
@@ -1634,6 +1677,7 @@ CreateThread(function()
                 end
             end
         end
+        
         
         if not nearStand then
             for index, standData in pairs(worldStands) do
@@ -1648,17 +1692,22 @@ CreateThread(function()
                         isWorldStand = true
                         currentStand = standData
                         
+                       
                         if standData.occupied and standData.sittingPlayer then
-                            for _, playerId in ipairs(GetActivePlayers()) do
-                                local otherPed = GetPlayerPed(playerId)
-                                if otherPed ~= playerPed then
+                            if standData.sittingPlayer ~= myServerId then
+                                local players = GetActivePlayers()
+                                for _, playerId in ipairs(players) do
                                     local serverId = GetPlayerServerId(playerId)
                                     if serverId == standData.sittingPlayer then
-                                        local otherCoords = GetEntityCoords(otherPed)
-                                        local distToStand = #(otherCoords - standCoords)
-                                        if distToStand < 2.5 then
-                                            nearSittingPlayer = true
-                                            sittingPlayerPed = otherPed
+                                        local otherPed = GetPlayerPed(playerId)
+                                        if otherPed and DoesEntityExist(otherPed) and otherPed ~= playerPed then
+                                            local otherCoords = GetEntityCoords(otherPed)
+                                            local distToStand = #(otherCoords - standCoords)
+                                            if distToStand < 5.0 then
+                                                nearSittingPlayer = true
+                                                sittingPlayerPed = otherPed
+                                                sittingPlayerServerId = serverId
+                                            end
                                         end
                                         break
                                     end
@@ -1673,9 +1722,10 @@ CreateThread(function()
             end
         end
         
+        
         if not isSitting then
             for _, npc in pairs(queuedNPCs) do
-                if DoesEntityExist(npc) then
+                if npc and DoesEntityExist(npc) then
                     local npcCoords = GetEntityCoords(npc)
                     local distance = #(playerCoords - npcCoords)
                     
@@ -1689,11 +1739,13 @@ CreateThread(function()
             end
         end
         
+        
         if nearStand or nearNPC or isSitting or nearOwnStand or nearSittingPlayer then
             sleep = 0
             
             HideAllPrompts()
             
+           
             if isSitting then
                 ShowPrompt(standUpPrompt)
                 
@@ -1714,21 +1766,30 @@ CreateThread(function()
                         CallNPCShiner()
                     end
                 end
-                
-            elseif nearSittingPlayer and targetStand and not isShining then
-                if HasShoeShinerJob() then
-                    ShowPrompt(shinePrompt)
-                    ShowPromptGroup('Shine Player Shoes')
-                    
-                    if currentTime - lastPromptTime > promptCooldown then
-                        if PromptHasHoldModeCompleted(shinePrompt) then
-                            lastPromptTime = currentTime
-                            ShineShoes(targetStand, targetStand.sittingPlayer)
+            
+            
+            elseif nearSittingPlayer and targetStand and sittingPlayerServerId then
+                if not isShining and not isSitting then
+                    if HasShoeShinerJob() then
+                        
+                        ShowPrompt(shinePrompt)
+                        ShowPromptGroup('Shine Player Shoes')
+                        
+                        if currentTime - lastPromptTime > promptCooldown then
+                            local completed = PromptHasHoldModeCompleted(shinePrompt)
+                            if completed then
+                                lastPromptTime = currentTime
+                                print('^2[Shoeshine]^7 Shine prompt completed! Initiating shine for player: ' .. sittingPlayerServerId)
+                                ShineShoes(targetStand, sittingPlayerServerId)
+                            end
                         end
+                    else
+                        ShowPromptGroup('Stand Occupied')
                     end
                 end
-                
-            elseif nearNPC and targetNPC and not isShining then
+            
+            
+            elseif nearNPC and targetNPC and not isShining and not isSitting then
                 if HasShoeShinerJob() then
                     ShowPrompt(shinePrompt)
                     ShowPromptGroup('Shine Customer Shoes')
@@ -1740,39 +1801,42 @@ CreateThread(function()
                         end
                     end
                 end
+            
+            
+            elseif nearStand and targetStand and not isShining and not nearSittingPlayer and not isSitting then
+                local canSit = not targetStand.occupied
                 
-            elseif nearStand and targetStand and not isShining and not nearSittingPlayer then
-                if not targetStand.occupied or targetStand.sittingPlayer == GetPlayerServerId(PlayerId()) then
+                if canSit then
                     ShowPrompt(sitPrompt)
-                    
-                    if HasShoeShinerJob() then
-                        if not isWorldStand then
-                            ShowPrompt(pickupPrompt)
-                        end
-                        
-                        if nearOwnStand or isWorldStand then
-                            ShowPrompt(callCustomerPrompt)
-                        end
+                end
+                
+                if HasShoeShinerJob() then
+                    if not isWorldStand and targetStand.owner == myServerId then
+                        ShowPrompt(pickupPrompt)
                     end
                     
-                    ShowPromptGroup('Shoe Shine Stand')
+                    if nearOwnStand or isWorldStand then
+                        ShowPrompt(callCustomerPrompt)
+                    end
+                end
+                
+                ShowPromptGroup('Shoe Shine Stand')
+                
+                if currentTime - lastPromptTime > promptCooldown then
+                    if canSit and PromptHasHoldModeCompleted(sitPrompt) then
+                        lastPromptTime = currentTime
+                        SitOnStand(targetStand)
+                    end
                     
-                    if currentTime - lastPromptTime > promptCooldown then
-                        if PromptHasHoldModeCompleted(sitPrompt) and not targetStand.occupied then
+                    if HasShoeShinerJob() then
+                        if not isWorldStand and targetStand.owner == myServerId and PromptHasHoldModeCompleted(pickupPrompt) then
                             lastPromptTime = currentTime
-                            SitOnStand(targetStand)
+                            PickupStand(targetStand, targetIndex, isWorldStand)
                         end
                         
-                        if HasShoeShinerJob() then
-                            if not isWorldStand and PromptHasHoldModeCompleted(pickupPrompt) then
-                                lastPromptTime = currentTime
-                                PickupStand(targetStand, targetIndex, isWorldStand)
-                            end
-                            
-                            if (nearOwnStand or isWorldStand) and PromptHasHoldModeCompleted(callCustomerPrompt) then
-                                lastPromptTime = currentTime
-                                CallNearbyCustomer()
-                            end
+                        if (nearOwnStand or isWorldStand) and PromptHasHoldModeCompleted(callCustomerPrompt) then
+                            lastPromptTime = currentTime
+                            CallNearbyCustomer()
                         end
                     end
                 end
@@ -1786,78 +1850,190 @@ CreateThread(function()
     end
 end)
 
--- ============================================
--- SYNC EVENTS
--- ============================================
+
+
+
 
 RegisterNetEvent('shoeshine:client:syncStands', function(stands)
+   
+    
     for _, standInfo in pairs(stands) do
-        local standEntity = NetworkGetEntityFromNetworkId(standInfo.netId)
-        if DoesEntityExist(standEntity) then
-            local exists = false
-            for _, existing in pairs(placedStands) do
-                if existing.entity == standEntity then
+        
+        if standInfo.owner == GetPlayerServerId(PlayerId()) then
+            goto continue
+        end
+        
+       
+        local coords = standInfo.coords
+        if type(coords) == 'table' and coords.x then
+            coords = vector3(coords.x, coords.y, coords.z)
+        end
+        
+        if not coords then
+            
+            goto continue
+        end
+        
+        
+        local exists = false
+        local existingIndex = nil
+        for i, existing in pairs(placedStands) do
+            if existing.entity and DoesEntityExist(existing.entity) then
+                local existingCoords = GetEntityCoords(existing.entity)
+                if #(existingCoords - coords) < 2.0 then
                     exists = true
+                    existingIndex = i
+                    
+                    placedStands[i].occupied = standInfo.occupied or false
+                    placedStands[i].sittingPlayer = standInfo.sittingPlayer
                     break
                 end
             end
-            
-            if not exists then
-                local standData = {
-                    entity = standEntity,
-                    coords = standInfo.coords,
-                    heading = standInfo.heading,
-                    owner = standInfo.owner,
-                    occupied = standInfo.occupied or false,
-                    sittingPlayer = standInfo.sittingPlayer or nil,
-                    isWorldStand = false
-                }
-                table.insert(placedStands, standData)
-            end
         end
+        
+        if exists then
+            goto continue
+        end
+        
+        
+        local standEntity = nil
+        if standInfo.netId and standInfo.netId > 0 then
+            standEntity = NetworkGetEntityFromNetworkId(standInfo.netId)
+        end
+        
+        
+        if not standEntity or not DoesEntityExist(standEntity) then
+           
+            
+            local modelHash = joaat(Config.StandModel)
+            if LoadModel(modelHash) then
+                standEntity = CreateObject(modelHash, coords.x, coords.y, coords.z, false, false, true)
+                
+                if DoesEntityExist(standEntity) then
+                    SetEntityHeading(standEntity, standInfo.heading or 0.0)
+                    PlaceObjectOnGroundProperly(standEntity)
+                    FreezeEntityPosition(standEntity, true)
+                    SetEntityCollision(standEntity, true, true)
+                    
+                else
+                    
+                end
+                
+                SetModelAsNoLongerNeeded(modelHash)
+            else
+               
+            end
+        else
+            
+        end
+        
+        
+        if standEntity and DoesEntityExist(standEntity) then
+            local standData = {
+                entity = standEntity,
+                coords = coords,
+                heading = standInfo.heading or 0.0,
+                owner = standInfo.owner,
+                occupied = standInfo.occupied or false,
+                sittingPlayer = standInfo.sittingPlayer or nil,
+                isWorldStand = false
+            }
+            table.insert(placedStands, standData)
+           
+        end
+        
+        ::continue::
     end
 end)
 
+
+
 RegisterNetEvent('shoeshine:client:updateStandStatus', function(coords, occupied, sittingPlayer)
-    for _, standData in pairs(placedStands) do
-        if #(standData.coords - coords) < 1.0 then
-            standData.occupied = occupied
-            standData.sittingPlayer = sittingPlayer
-            break
+   
+    
+   
+    local targetCoords = coords
+    if type(coords) == 'table' and coords.x then
+        targetCoords = vector3(coords.x, coords.y, coords.z)
+    end
+    
+    if not targetCoords then
+        
+        return
+    end
+    
+    
+    local foundInPlaced = false
+    for i, standData in pairs(placedStands) do
+        if standData.entity and DoesEntityExist(standData.entity) then
+            local standCoords = GetEntityCoords(standData.entity)
+            local dist = #(standCoords - targetCoords)
+            
+            if dist < 3.0 then
+                placedStands[i].occupied = occupied
+                placedStands[i].sittingPlayer = sittingPlayer
+                foundInPlaced = true
+               
+                break
+            end
         end
     end
     
-    for _, standData in pairs(worldStands) do
-        if #(standData.coords - coords) < 1.0 then
-            standData.occupied = occupied
-            standData.sittingPlayer = sittingPlayer
-            break
+    
+    for i, standData in pairs(worldStands) do
+        if standData.entity and DoesEntityExist(standData.entity) then
+            local standCoords = GetEntityCoords(standData.entity)
+            local dist = #(standCoords - targetCoords)
+            
+            if dist < 3.0 then
+                worldStands[i].occupied = occupied
+                worldStands[i].sittingPlayer = sittingPlayer
+               
+                break
+            end
         end
+    end
+    
+    if not foundInPlaced then
+        
     end
 end)
 
 RegisterNetEvent('shoeshine:client:removeStand', function(coords)
-    for i, standData in pairs(placedStands) do
-        if #(standData.coords - coords) < 1.0 then
-            if DoesEntityExist(standData.entity) then
-                DeleteEntity(standData.entity)
+   
+    local targetCoords = coords
+    if type(coords) == 'table' and coords.x then
+        targetCoords = vector3(coords.x, coords.y, coords.z)
+    end
+    
+    for i = #placedStands, 1, -1 do
+        local standData = placedStands[i]
+        if standData.coords then
+            local standCoords = standData.coords
+            if type(standCoords) == 'table' then
+                standCoords = vector3(standCoords.x, standCoords.y, standCoords.z)
             end
-            table.remove(placedStands, i)
-            break
+            
+            if standCoords and targetCoords and #(standCoords - targetCoords) < 1.0 then
+                if DoesEntityExist(standData.entity) then
+                    DeleteEntity(standData.entity)
+                end
+                table.remove(placedStands, i)
+               
+                break
+            end
         end
     end
 end)
 
--- ============================================
--- RESOURCE EVENTS
--- ============================================
+
 
 AddEventHandler('RSGCore:Client:OnPlayerLoaded', function()
     Wait(1000)
     TriggerServerEvent('shoeshine:server:requestSync')
 end)
 
--- Also handle the resource restart
+
 AddEventHandler('onResourceStart', function(resourceName)
     if GetCurrentResourceName() == resourceName then
         Wait(1000)
@@ -1887,12 +2063,12 @@ AddEventHandler('onResourceStop', function(resourceName)
     end
 end)
 
--- ============================================
--- ITEM USAGE
--- ============================================
+
 
 RegisterNetEvent('shoeshine:client:useItem', function()
     OpenStandMenu()
 end)
 
 exports('OpenShoeShineMenu', OpenStandMenu)
+
+

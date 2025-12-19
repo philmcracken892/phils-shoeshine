@@ -1,15 +1,15 @@
 Config = {}
 
-Config.RequireJob = false                    -- Set to false to disable job requirement
+Config.RequireJob = true                   -- Set to false to disable job requirement
 Config.JobName = 'shoeshiner'               -- Job name required to use shoe shine functions
 
 -- Stand Model
 Config.StandModel = 'p_shoeshinestand01x'
 
--- Sitting Position Offset (relative to object)
+
 Config.SitOffset = { x = 0.4, y = 0.3, z = 1.1, heading = 180.0 }
 
--- Shiner Position Offset (Adjusted to be in front of the player)
+
 Config.ShinerOffset = {
     x = 0.4,
     y = -1.3,
@@ -17,23 +17,20 @@ Config.ShinerOffset = {
     heading = 0.0
 }
 
-
-
--- Distances
 Config.PlacementDistance = 2.0
 Config.InteractionDistance = 3.0
-Config.NPCWalkDistance = 40.0
+Config.NPCWalkDistance = 60.0
 Config.WorldStandScanRadius = 100.0  
 
 -- Pricing
 Config.ShinePrice = 5
-Config.ShinerEarnings = 3
+Config.ShinerEarnings = 5
 Config.NPCPayAmount = 10
 
 -- Auto NPC Shiner Settings
 Config.AutoNPCShiner = {
     cost = 3,
-    npcSearchRadius = 50.0
+    npcSearchRadius = 70.0
 }
 
 -- Duration (milliseconds)
