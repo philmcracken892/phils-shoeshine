@@ -161,6 +161,7 @@ local function StopScenario(ped)
     ClearPedTasks(ped)
 end
 
+
 local function FindNearbyNPCForShining(coords, radius)
     local nearbyPeds = {}
     local handle, ped = FindFirstPed()
@@ -168,7 +169,8 @@ local function FindNearbyNPCForShining(coords, radius)
     local myPed = PlayerPedId()
     
     repeat
-        if ped ~= myPed and not IsPedAPlayer(ped) and not IsPedDeadOrDying(ped) then
+        -- Added IsPedHuman(ped) check to exclude animals
+        if ped ~= myPed and not IsPedAPlayer(ped) and not IsPedDeadOrDying(ped) and IsPedHuman(ped) then
             local pedCoords = GetEntityCoords(ped)
             local distance = #(coords - pedCoords)
             
@@ -197,9 +199,6 @@ local function FindNearbyNPCForShining(coords, radius)
     
     return nil
 end
-
-
-
 local function SetupPlacerPrompts()
     CancelPrompt = PromptRegisterBegin()
     PromptSetControlAction(CancelPrompt, 0xF84FA74F)
